@@ -93,7 +93,10 @@ struct UsageSnapshot {
 ///
 /// 数据源：~/.workbuddy/projects/**\/*.jsonl
 ///  - token 用量：providerData.usage（inputTokens / outputTokens / cached / reasoning）
-///  - 生成耗时：以「上一轮工具返回时间戳 → 本轮 usage 时间戳」推导
+///  - 生成耗时：以「本轮请求起点 → 本轮 usage 时间戳」推导。
+///    请求起点 = 最近一次真实用户提问时间戳，或最近一次工具返回时间戳（取较近者），
+///    即每次模型回答只统计自身的生成时间，不含用户离开/空闲间隔，
+///    平均速度 = 今日所有模型回答的输出总量 / 这些回答的总时长。
 ///    （已与 ~/.workbuddy/traces 的 generation span 交叉校验，中位误差 49ms）
 final class UsageStore {
 
@@ -344,7 +347,13 @@ final class UsageStore {
         }
 
         if type == "message", let role = obj["role"] as? String, role == "user" {
-            if !isInjectedUserMessage(obj) { stats.userTurns += 1 }
+            if !isInjectedUserMessage(obj) {
+                stats.userTurns += 1
+                // 真实用户提问 = 本轮模型回答的请求起点边界，
+                // 这样每次生成的耗时只从「自己的请求」算到完成，
+                // 不会把用户离开/空闲的间隔算进模型回答总时长里。
+                stats.lastBoundary = ts
+            }
             return
         }
 

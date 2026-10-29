@@ -59,6 +59,7 @@ def main():
                 if t == "message" and d.get("role") == "user":
                     if is_real_user(extract_text(d.get("content"))):
                         turns += 1
+                        boundary = ts  # 真实用户提问 = 本轮请求起点
                     continue
                 pd = d.get("providerData") or {}
                 u = pd.get("usage")
@@ -83,7 +84,6 @@ def main():
                     gens.append((ts, ms, o_))
                     st["ms"] += ms
                     st["out"] += o_
-                boundary = ts
 
     gens.sort()
     total_ms = sum(g[1] for g in gens)
