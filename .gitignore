@@ -1,0 +1,6 @@
+# 编译产物（构建脚本会重新生成）
+.build/
+dist/
+
+# macOS
+.DS_Store
